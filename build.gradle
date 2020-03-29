@@ -18,6 +18,8 @@ dependencies {
     implementation 'junit:junit:4.12'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+	/*compile('com.h2database:h2')*/
+	runtime('com.h2database:h2')
 }
 
 test {

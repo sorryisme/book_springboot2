@@ -147,7 +147,91 @@
   - @ConfigurationProperties의 유연한 바인딩
 
     - 필드를 낙타 표기법으로 선언 하고 프로퍼티의 키는 다양한 형식으로 선언 및 바인딩
+- 스프링부트2.0 부터 소문자나 케밥 표기법만 지원
 
-    - 스프링부트2.0 부터 소문자나 케밥 표기법만 지원
 
-      
+
+### 자동 환경 설정 이해하기
+
+- @EnableAutoConfiguration 또는 @SpringBootApplication 중 하나를 사용
+
+  ```java
+  @Target(ElementType.TYPE)
+  @Retention(RetentionPolicy.RUNTIME)
+  @Documented
+  @Inherited
+  @SpringBootConfiguration
+  @EnableAutoConfiguration
+  @ComponentScan(excludeFilters = { @Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+  		@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })
+  public @interface SpringBootApplication {
+  ```
+
+  - @SpringBootConfigiration : 스프링의 @Configuration을 대체함 
+  - @EnableAutoConfiguration : 자동 설정의 핵심 애노테이션, 클래스 경로에 지정된 내용을 기반으로 설정 자동화 수행
+  - @ComponentScane : 별도 값을 서정하지 않으면 루트 경로가 설정됨
+
+- @EnableAutoConfiguration 
+
+  ```java
+  @Target(ElementType.TYPE)
+  @Retention(RetentionPolicy.RUNTIME)
+  @Documented
+  @Inherited
+  @AutoConfigurationPackage
+  @Import(AutoConfigurationImportSelector.class)
+  public @interface EnableAutoConfiguration {
+  ```
+
+  - @Import(AutoConfigurtionImnportSelector.class)
+    - 빈의 등록과 자동 설정에 필요한 파일
+      - META-INF/spring.factories : 자동설정 클래스 목록, @EnableAutoConfiguration 사용 시 자동 설정 타깃
+      - META-INF/spring-configuration-metadata.json : 자동설정에 사용할 프로퍼티 정의 파일
+      - org/springframework/boot/autoconfigure : 미리 구현해 놓은 자동설정 리스트 
+    - Spring-boot-autoconfiguration에 미리 정의 되어 있음 
+  - 스프링 프로퍼티 문서를 통해서 프로퍼티 값을 확인할 수 있음
+    - https://docs.spring.io/spring-boot/docs/2.2.6.RELEASE/reference/html/appendix-application-properties.html#common-application-properties
+
+## 스프링 부트 테스트
+
+ -	Spring-boot-test, spring-boot-test-autoconfigure 모듈로 구성
+ -	자주 사용하는 애노테이션
+   	-	@SpringBootTest
+   	-	@WebMvcTest
+   	-	@DataJpaTest
+   	-	@RestClientTest
+   	-	@JsonTest
+
+
+
+### @SpringBootTest
+
+- @SpringBootTest 어노테이션을 사용하려면 SpringJunit4ClassRunner 클래스를 상속받은 @Runwith(SpringRunner.class)를 사용해야한다
+  - @Runwith 어노테이션을 사용하면 Junit에 내장된 러너 대신 어노테이션에 정의된 러너 클래스 사용
+
+```javascript
+@RunWith(SpringRunner.class)
+@SpringBootTest(
+        value = "value=test",
+        properties = {"property.value= propertyTest "},
+        classes = {SpringBootTestApplication.class},
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class SpringBootTestApplication {
+```
+
+- value : 테스트 실행전 프로퍼티 주입
+- properties : key = value 형태로 프로퍼티 추가
+- classes : 어플리케이션 컨텍스트에 로드할 클래스 지정 가능 ,따로 지정하지 않으면 SpringBootConfigiration을 찾아서 로드
+- webEnvirment : 웹 환경 설정 , 기본값은 Mock 서블릿 로드
+
+
+
+### 추가적인 팁
+
+- 프로파일과 다른 데이터소스를 가진다면 어떻게 해야할까요?
+  - @ActiveProfiles("local")과 같은 방식으로 원하는 프로파일 환경을 부여
+- 테스트에서 @Transactional을 사용하면 데이터가 롤백됩니다. 다만 테스트가 서버의 다른 스레드에서 실행 중이면 WebEnviroment의 RANDOM_PORT나 DEFINED_PORT를 사용하여 테스트를 수행해도 트랜잭션이 롤백되지 않는다.
+- @SpringBootTest는 기본적으로 검색알고리즘을 사용하여 @SpringBootApplication이나 @SpringBootConfiguiration어노테이션을 찾습니다. 스프링부트 테스트는 해당 어노테이션 중 하나는 필수입니다.
+
+
+
