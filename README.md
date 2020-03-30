@@ -196,8 +196,8 @@
 
  -	Spring-boot-test, spring-boot-test-autoconfigure 모듈로 구성
  -	자주 사용하는 애노테이션
-   	-	@SpringBootTest
-   	-	@WebMvcTest
+      	-	@SpringBootTest
+         	-	@WebMvcTest
    	-	@DataJpaTest
    	-	@RestClientTest
    	-	@JsonTest
@@ -232,6 +232,110 @@ public class SpringBootTestApplication {
   - @ActiveProfiles("local")과 같은 방식으로 원하는 프로파일 환경을 부여
 - 테스트에서 @Transactional을 사용하면 데이터가 롤백됩니다. 다만 테스트가 서버의 다른 스레드에서 실행 중이면 WebEnviroment의 RANDOM_PORT나 DEFINED_PORT를 사용하여 테스트를 수행해도 트랜잭션이 롤백되지 않는다.
 - @SpringBootTest는 기본적으로 검색알고리즘을 사용하여 @SpringBootApplication이나 @SpringBootConfiguiration어노테이션을 찾습니다. 스프링부트 테스트는 해당 어노테이션 중 하나는 필수입니다.
+
+
+
+### @WebMvcTest
+
+- 웹에서 테스트하기 힘든 컨트롤러를 테스트하는데 적합
+- 요청과 응답에 대해 테스트
+- 시큐리티 필터까지 자동으로 테스트, 수동으로 추가/삭제 가능
+
+
+
+#### 사용 이유
+
+ 다음과 같은 관련 내용만 로드하기에 @SpringBootTest보다 가볍게 테스트 할 수 있음
+
+- @Controller
+- @ControllerAdvice
+- @JsonComponent
+- filter
+- WebMvcConfigure
+- HandlerMethodArgumentResolver
+
+
+
+```java
+package community.community.controller;
+
+
+import community.community.domain.Book;
+import community.community.service.BookService;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+
+@RunWith(SpringRunner.class)
+@WebMvcTest(BookController.class)
+public class BookControllerTest {
+
+    @Autowired
+    private MockMvc mvc;
+
+    @MockBean
+    private BookService bookService;
+
+    @Test
+    public void Book_MVC_테스트() throws Exception {
+        Book book = new Book("Spring Boot book", LocalDateTime.now());
+        given(bookService.getBookList()).willReturn(Collections.singletonList(book));
+      
+        mvc.perform(get("/books"))
+            .andExpect(status().isOk())
+                .andExpect(view().name("book"))
+                .andExpect(model().attributeExists("bookList"))
+                .andExpect(model().attribute("bookList", Matchers.contains(book)));
+    }
+
+}
+
+```
+
+- @WebMvcTest를 사용하기 위해 테스트할 특정 Controller 명을 지정해줘야한다
+- MockMvc는 BookController 관련 빈만 로드하여 Http 서버를 실행하지 않고 테스트할 수 있다.
+- @Service 어노테이션은 @WebMvcTest 대상이 아니기 때문에 MockBean이라는 가짜 객체를 통해 테스트를 진행
+- given을 통해서 반환값을 미리 정의한다
+- MockMvc를 이용하여 다음과 같이 측정하였음
+  - status().isOk : 상태값 200 확인
+  - view().name("book") : 반환 뷰이름이 book인지 테스트
+  - andExpect(model().attributeExists("bookList")) : bookList라는 프로퍼티 존재 여부 확인
+  - AndExpect(model().attribute("bookList", contains(book))) : 모델 프로퍼티 중 bookList라는 객체가 담겨져 있는지 테스트
+
+### @DataJpaTest
+
+- JPA 관련 테스트 설정만 로드 
+
+- 기본적으로 인메모리 데이터베이스를 사용
+
+  ```java
+  @RunWith(SpringRunner.class)
+  @DataJpaTest
+  @ActiveProfiles("...")
+  @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+  public class JpaTest {
+  }
+  
+  ```
+
+  - Replace.NONE으로 설정한 뒤에 @ActiveProfiles에 설정한 프로파일 환경값에 따라 데이터 소스가 적용
+
+
+
+- 이 외에도 JDBC를 테세트하는 @JdbcTest, 몽고디비를 테스트하는 @DataMongoTest 어노테이션 등이 있음
 
 
 
