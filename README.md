@@ -198,7 +198,7 @@
  -	자주 사용하는 애노테이션
       	-	@SpringBootTest
          	-	@WebMvcTest
-   	-	@DataJpaTest
+         	-	@DataJpaTest
    	-	@RestClientTest
    	-	@JsonTest
 
@@ -336,6 +336,86 @@ public class BookControllerTest {
 
 
 - 이 외에도 JDBC를 테세트하는 @JdbcTest, 몽고디비를 테스트하는 @DataMongoTest 어노테이션 등이 있음
+
+
+
+
+### @RestClientTest
+
+- REST 관련 테스트를 도와주는 애노테이션
+
+- @RestController
+
+  - 객체를 리턴해도 RestController 애노테이션이 JSON 형태 String으로 반환한다.
+
+- RestTemplate best practice
+
+  ```java
+  @Service
+  public class BookRestService {
+  
+      private final RestTemplate restTemplate;
+  
+      public BookRestService(RestTemplateBuilder restTemplateBuilder){
+          this.restTemplate = restTemplateBuilder.rootUri("/rest/test").build();
+      }
+  
+      public Book getRestBook(){
+          return this.restTemplate.getForObject("/rest/test", Book.class);
+      }
+  }
+  ```
+
+  - RestTemplateBuilder는 RestTemplate를 핸들링 하는 빌더 객체 , connetionTimeout,ReadTimeout 설정 외에 다른 설정을 간편히 처리하도록 해줌
+
+- RestClientTest 코드
+
+  ```java
+  @RunWith(SpringRunner.class)
+  @RestClientTest(BookRestService.class)
+  class BookRestControllerTest {
+  
+      @Rule
+      public ExpectedException thrown = ExpectedException.none();
+  
+      @Autowired
+      private BookRestService bookRestService;
+  
+      @Autowired
+      private MockRestServiceServer server;
+  
+      @Test
+      public void rest_테스트(){
+          this.server.expect(requestTo("/rest/test"))
+                      .andRespond(withSuccess(new ClassPathResource("/test.json",getClass()), MediaType.APPLICATION_JSON));
+  
+          Book book = this.bookRestService.getRestBook();
+          assertThat(book.getTitle()).isEqualTo("테스트");
+      }
+  
+      @Test
+      public void rest_error_테스트(){
+          this.server.expect(requestTo("/rest/test"))
+                      .andRespond(withServerError());
+          this.thrown.expect(HttpServerErrorException.class);
+          this.bookRestService.getRestBook();
+      }
+  }
+  ```
+
+  - @RestClinetTest 테스트 대상이 되는 빈을 주입받음
+  - @Rule로 지정한 필드값은 @Before, @After 애노테이션 상관없이 값을 초기화
+  - Mock RestServiceServer는 클라이언트와 서버 사이의 Rest테스트를 위한 객체이며 예상되는 반환값과 에러를 반환하도록 명시하여 테스트를 진행할 수 있도록 구현
+  - ClassPathResource("/test.json",getClass()) 
+    - /test/resources/test.json 파일에서 값을 가져와서 응답을 주도록 처리
+    - 경로는 /test/resource로 지정할 것
+  - rest_error_테스트 의 경우 500에러를 발생시키고 thrown.expect에서 500에러를 감지하여 확인하는 테스트 코드
+
+
+
+### @JsonTest
+
+
 
 
 
