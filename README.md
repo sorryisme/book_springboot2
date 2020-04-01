@@ -199,7 +199,7 @@
       	-	@SpringBootTest
          	-	@WebMvcTest
          	-	@DataJpaTest
-   	-	@RestClientTest
+         	-	@RestClientTest
    	-	@JsonTest
 
 
@@ -415,7 +415,35 @@ public class BookControllerTest {
 
 ### @JsonTest
 
+- JSON의 직렬화와 역직렬화를 수행하는 라이브러리 Gson과 Jackson API 테스트 제공
 
+  ```java
+  RunWith(SpringRunner.class)
+  @JsonTest
+  public class BookJsonTest {
+  
+      @Autowired
+      private JacksonTester<Book> json;
+  
+      @Test
+      public void json_테스트() throws Exception{
+          Book book = Book.builder()
+                          .title("테스트")
+                          .build();
+          String content = "{\"title\":\"테스트\"}";
+  
+          assertThat(this.json.parseObject(content).getTitle()).isEqualTo(book.getTitle());
+          assertThat(this.json.parseObject(content).getPublishedAt()).isNull();
+          assertThat(this.json.write(book)).hasJsonPathStringValue("title");
+     			assertThat(this.json.write(book)).extractingJsonPathStringValue("title").
+       																													isEqualTo("테스트");
+  
+      }
+  
+  }
+  ```
+
+  
 
 
 
